@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Tugas LMS</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-page">
+    <!-- Navigation -->
+    <nav class="navbar dashboard-navbar">
+        <div class="container">
+            <div class="logo">
+                <h1>📚 Tugas LMS</h1>
+            </div>
+            <div class="nav-right">
+                <span id="userDisplay" class="user-info">👤 Loading...</span>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="dashboard-container">
+        <div class="container">
+            <!-- Header -->
+            <div class="dashboard-header">
+                <h2>Selamat Datang, <span id="userName">Murid</span>! 👋</h2>
+                <p>Kelola kursus dan pembelajaran Anda di sini</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <h4>📚 Kursus Aktif</h4>
+                    <p class="stat-number" id="activeCourses">-</p>
+                </div>
+                <div class="stat-card">
+                    <h4>✅ Selesai</h4>
+                    <p class="stat-number" id="completedCourses">-</p>
+                </div>
+                <div class="stat-card">
+                    <h4>🏆 Sertifikat</h4>
+                    <p class="stat-number" id="certificates">-</p>
+                </div>
+                <div class="stat-card">
+                    <h4>⭐ Poin</h4>
+                    <p class="stat-number" id="points">-</p>
+                </div>
+            </div>
+
+            <!-- Courses Section -->
+            <div class="dashboard-section">
+                <h3>Kursus Saya</h3>
+                <div id="coursesList" class="courses-grid">
+                    <div class="loading">Memuat data kursus...</div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="dashboard-section">
+                <h3>Aktivitas Terbaru</h3>
+                <div id="activityList" class="activity-list">
+                    <div class="loading">Memuat aktivitas...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Tugas LMS. Semua hak dilindungi.</p>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+    <script>
+        // Check if user is logged in
+        window.addEventListener('load', () => {
+            checkAuth();
+            loadDashboardData();
+        });
+
+        function checkAuth() {
+            // Check if session exists
+            fetch('backend/check_auth.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.authenticated) {
+                        window.location.href = 'login.html';
+                    } else {
+                        document.getElementById('userName').textContent = data.user.name || data.user.username;
+                        document.getElementById('userDisplay').textContent = '👤 ' + data.user.username;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    window.location.href = 'login.html';
+                });
+        }
+
+        function loadDashboardData() {
+            fetch('backend/dashboard.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update stats
+                        document.getElementById('activeCourses').textContent = data.stats.active_courses;
+                        document.getElementById('completedCourses').textContent = data.stats.completed_courses;
+                        document.getElementById('certificates').textContent = data.stats.certificates;
+                        document.getElementById('points').textContent = data.stats.points;
+
+                        // Load courses
+                        displayCourses(data.courses);
+
+                        // Load activities
+                        displayActivities(data.activities);
+                    }
+                })
+                .catch(error => console.error('Error loading dashboard:', error));
+        }
+
+        function displayCourses(courses) {
+            const coursesList = document.getElementById('coursesList');
+            
+            if (courses.length === 0) {
+                coursesList.innerHTML = '<p class="no-data">Belum ada kursus. <a href="index.html">Jelajahi kursus kami</a></p>';
+                return;
+            }
+
+            coursesList.innerHTML = courses.map(course => `
+                <div class="course-card">
+                    <div class="course-header">
+                        <h4>${course.title}</h4>
+                        <span class="course-status">${course.status}</span>
+                    </div>
+                    <p class="course-description">${course.description}</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${course.progress}%"></div>
+                    </div>
+                    <p class="progress-text">${course.progress}% Selesai</p>
+                    <a href="#" class="btn-small">Lanjutkan</a>
+                </div>
+            `).join('');
+        }
+
+        function displayActivities(activities) {
+            const activityList = document.getElementById('activityList');
+            
+            if (activities.length === 0) {
+                activityList.innerHTML = '<p class="no-data">Tidak ada aktivitas terbaru</p>';
+                return;
+            }
+
+            activityList.innerHTML = activities.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon">${activity.icon}</div>
+                    <div class="activity-content">
+                        <p class="activity-text">${activity.text}</p>
+                        <p class="activity-time">${activity.time}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Logout handler
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            fetch('backend/logout.php', { method: 'POST' })
+                .then(() => {
+                    window.location.href = 'index.html';
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
